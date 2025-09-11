@@ -1,0 +1,35 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE = 1
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	# Build the Rust application
+	cargo build --release
+
+override_dh_auto_install:
+	# Install the binary
+	install -D -m 755 target/release/cert-agent debian/cert-agent/usr/bin/cert-agent
+	
+	# Install configuration files
+	install -D -m 644 config/default.toml debian/cert-agent/etc/cert-agent/config.toml
+	
+	# Install systemd service
+	install -D -m 644 debian/cert-agent.service debian/cert-agent/lib/systemd/system/cert-agent.service
+	
+	# Install debconf templates
+	install -D -m 644 debian/templates debian/cert-agent/usr/share/debconf/templates/cert-agent
+	
+	# Install configuration script
+	install -D -m 755 debian/config debian/cert-agent/usr/lib/cert-agent/config
+	
+	# Install development files for dev package
+	mkdir -p debian/cert-agent-dev/usr/share/cert-agent/examples
+	cp -r client/* debian/cert-agent-dev/usr/share/cert-agent/examples/
+	install -D -m 644 proto/cert_agent.proto debian/cert-agent-dev/usr/share/cert-agent/proto/cert_agent.proto
+
+override_dh_auto_clean:
+	cargo clean
+	dh_auto_clean

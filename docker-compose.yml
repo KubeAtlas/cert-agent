@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: cert-agent-redis
+    ports:
+      - "6380:6379"  # Нестандартный порт 6380 вместо 6379
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cert-agent-network
+
+  cert-agent:
+    build: .
+    container_name: cert-agent-service
+    ports:
+      - "50051:50051"
+    environment:
+      - RUST_LOG=info
+      - CERT_AGENT_REDIS_URL=redis://redis:6379
+      - CERT_AGENT_GRPC_BIND_ADDRESS=0.0.0.0:50051
+      - CERT_AGENT_CERTIFICATE_STORAGE_PATH=/app/certs/storage
+      - CERT_AGENT_WATCHER_CHECK_INTERVAL_SECONDS=60
+    volumes:
+      - cert_storage:/app/certs/storage
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - cert-agent-network
+    restart: unless-stopped
+
+  # gRPC клиент для тестирования
+  grpc-client:
+    image: grpcui/grpcui:latest
+    container_name: cert-agent-grpcui
+    ports:
+      - "8080:8080"
+    command: ["-plaintext", "cert-agent:50051"]
+    depends_on:
+      - cert-agent
+    networks:
+      - cert-agent-network
+    profiles:
+      - tools  # Запускается только с профилем tools
+
+volumes:
+  redis_data:
+    driver: local
+  cert_storage:
+    driver: local
+
+networks:
+  cert-agent-network:
+    driver: bridge

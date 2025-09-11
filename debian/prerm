@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -e
+
+case "$1" in
+    remove|upgrade|deconfigure)
+        # Stop service before removal/upgrade
+        if systemctl is-active --quiet cert-agent; then
+            systemctl stop cert-agent
+            echo "Stopped cert-agent service"
+        fi
+        ;;
+    failed-upgrade)
+        ;;
+esac
+
+exit 0

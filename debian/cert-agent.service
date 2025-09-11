@@ -1,0 +1,34 @@
+[Unit]
+Description=mTLS Certificate Management Service
+Documentation=https://github.com/your-org/cert-agent
+After=network.target redis.service
+Wants=redis.service
+
+[Service]
+Type=notify
+User=cert-agent
+Group=cert-agent
+ExecStart=/usr/bin/cert-agent --config /etc/cert-agent/config.toml
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cert-agent
+
+# Security settings
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/cert-agent /var/log/cert-agent
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,149 @@
+syntax = "proto3";
+
+package cert_agent;
+
+// Certificate Management Service
+service CertAgent {
+    // Issue a new mTLS certificate
+    rpc IssueCertificate(IssueCertificateRequest) returns (IssueCertificateResponse);
+    
+    // Renew an existing certificate
+    rpc RenewCertificate(RenewCertificateRequest) returns (RenewCertificateResponse);
+    
+    // Revoke a certificate
+    rpc RevokeCertificate(RevokeCertificateRequest) returns (RevokeCertificateResponse);
+    
+    // Get certificate status
+    rpc GetCertificateStatus(GetCertificateStatusRequest) returns (GetCertificateStatusResponse);
+    
+    // List all certificates
+    rpc ListCertificates(ListCertificatesRequest) returns (ListCertificatesResponse);
+    
+    // Watch for certificate expiration and auto-renew
+    rpc WatchCertificates(WatchCertificatesRequest) returns (stream CertificateEvent);
+}
+
+// Request to issue a new certificate
+message IssueCertificateRequest {
+    string common_name = 1;
+    repeated string dns_names = 2;
+    repeated string ip_addresses = 3;
+    int64 validity_days = 4;
+    string organization = 5;
+    string organizational_unit = 6;
+    string country = 7;
+    string state = 8;
+    string locality = 9;
+    map<string, string> metadata = 10;
+}
+
+// Response for certificate issuance
+message IssueCertificateResponse {
+    string certificate_id = 1;
+    string certificate_pem = 2;
+    string private_key_pem = 3;
+    string ca_certificate_pem = 4;
+    int64 expires_at = 5;
+    CertificateStatus status = 6;
+}
+
+// Request to renew a certificate
+message RenewCertificateRequest {
+    string certificate_id = 1;
+    int64 validity_days = 2; // Optional, use default if not provided
+}
+
+// Response for certificate renewal
+message RenewCertificateResponse {
+    string certificate_id = 1;
+    string certificate_pem = 2;
+    string private_key_pem = 3;
+    int64 expires_at = 4;
+    CertificateStatus status = 5;
+}
+
+// Request to revoke a certificate
+message RevokeCertificateRequest {
+    string certificate_id = 1;
+    string reason = 2; // Optional revocation reason
+}
+
+// Response for certificate revocation
+message RevokeCertificateResponse {
+    string certificate_id = 1;
+    bool success = 2;
+    string message = 3;
+}
+
+// Request to get certificate status
+message GetCertificateStatusRequest {
+    string certificate_id = 1;
+}
+
+// Response for certificate status
+message GetCertificateStatusResponse {
+    string certificate_id = 1;
+    CertificateStatus status = 2;
+    int64 expires_at = 3;
+    int64 issued_at = 4;
+    string common_name = 5;
+    repeated string dns_names = 6;
+    map<string, string> metadata = 7;
+}
+
+// Request to list certificates
+message ListCertificatesRequest {
+    CertificateStatus status = 1; // Optional filter by status
+    int32 page_size = 2;
+    string page_token = 3;
+}
+
+// Response for listing certificates
+message ListCertificatesResponse {
+    repeated CertificateInfo certificates = 1;
+    string next_page_token = 2;
+}
+
+// Request to watch certificates
+message WatchCertificatesRequest {
+    repeated string certificate_ids = 1; // Empty means watch all
+    int32 check_interval_seconds = 2; // How often to check expiration
+}
+
+// Certificate event stream
+message CertificateEvent {
+    string certificate_id = 1;
+    CertificateEventType event_type = 2;
+    string message = 3;
+    int64 timestamp = 4;
+}
+
+// Certificate information
+message CertificateInfo {
+    string certificate_id = 1;
+    string common_name = 2;
+    repeated string dns_names = 3;
+    CertificateStatus status = 4;
+    int64 expires_at = 5;
+    int64 issued_at = 6;
+    map<string, string> metadata = 7;
+}
+
+// Certificate status enum
+enum CertificateStatus {
+    CERTIFICATE_STATUS_UNSPECIFIED = 0;
+    CERTIFICATE_STATUS_ACTIVE = 1;
+    CERTIFICATE_STATUS_EXPIRED = 2;
+    CERTIFICATE_STATUS_REVOKED = 3;
+    CERTIFICATE_STATUS_PENDING = 4;
+}
+
+// Certificate event types
+enum CertificateEventType {
+    CERTIFICATE_EVENT_TYPE_UNSPECIFIED = 0;
+    CERTIFICATE_EVENT_TYPE_ISSUED = 1;
+    CERTIFICATE_EVENT_TYPE_RENEWED = 2;
+    CERTIFICATE_EVENT_TYPE_REVOKED = 3;
+    CERTIFICATE_EVENT_TYPE_EXPIRING = 4;
+    CERTIFICATE_EVENT_TYPE_EXPIRED = 5;
+}

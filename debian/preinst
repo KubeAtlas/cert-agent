@@ -1,0 +1,25 @@
+#!/bin/bash
+
+set -e
+
+# Source debconf library
+. /usr/share/debconf/confmodule
+
+case "$1" in
+    install|upgrade)
+        # Check if Redis is installed
+        if ! dpkg -l | grep -q "^ii.*redis-server"; then
+            echo "Warning: redis-server is not installed. cert-agent requires Redis to function."
+            echo "You can install it with: apt install redis-server"
+        fi
+        ;;
+    remove|purge)
+        # Stop service before removal
+        if systemctl is-active --quiet cert-agent; then
+            systemctl stop cert-agent
+            echo "Stopped cert-agent service"
+        fi
+        ;;
+esac
+
+exit 0

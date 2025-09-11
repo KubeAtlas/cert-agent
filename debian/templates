@@ -1,0 +1,35 @@
+Template: cert-agent/redis-url
+Type: string
+Default: redis://localhost:6379
+Description: Redis connection URL:
+ Please enter the Redis connection URL for cert-agent.
+ .
+ The URL should be in the format: redis://[username:password@]host:port[/database]
+ Examples:
+  - redis://localhost:6379 (default)
+  - redis://user:pass@redis.example.com:6380/0
+  - redis://redis-server:6379
+
+Template: cert-agent/redis-port
+Type: string
+Default: 6379
+Description: Redis port:
+ Please enter the Redis port number.
+ .
+ Default is 6379. If you're using a non-standard port, enter it here.
+
+Template: cert-agent/grpc-port
+Type: string
+Default: 50051
+Description: gRPC server port:
+ Please enter the port number for the gRPC server.
+ .
+ Default is 50051. Choose a port that's not in use by other services.
+
+Template: cert-agent/enable-service
+Type: boolean
+Default: true
+Description: Enable cert-agent service:
+ Do you want to enable and start the cert-agent service automatically?
+ .
+ If enabled, the service will start automatically on boot and after installation.

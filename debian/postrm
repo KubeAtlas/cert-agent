@@ -1,0 +1,36 @@
+#!/bin/bash
+
+set -e
+
+case "$1" in
+    remove|purge)
+        # Disable service
+        if systemctl is-enabled --quiet cert-agent; then
+            systemctl disable cert-agent
+            echo "Disabled cert-agent service"
+        fi
+        
+        # Reload systemd daemon
+        systemctl daemon-reload
+        
+        if [ "$1" = "purge" ]; then
+            # Remove configuration files and data
+            rm -rf /etc/cert-agent
+            rm -rf /var/lib/cert-agent
+            rm -rf /var/log/cert-agent
+            
+            # Remove user if no other packages use it
+            if ! getent passwd cert-agent > /dev/null 2>&1; then
+                userdel cert-agent 2>/dev/null || true
+            fi
+            
+            echo "Removed cert-agent configuration and data"
+        fi
+        ;;
+    upgrade|failed-upgrade|abort-upgrade)
+        ;;
+    abort-remove|abort-deconfigure)
+        ;;
+esac
+
+exit 0

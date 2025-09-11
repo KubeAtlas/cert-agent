@@ -1,0 +1,100 @@
+# Rust
+/target/
+/target
+target/
+target
+**/target/
+**/target
+Cargo.lock
+**/*.rs.bk
+*.pdb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+node_modules/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Temporary folders
+tmp/
+temp/
+
+# Certificate storage
+/tmp/cert-storage/
+certs/
+*.pem
+*.crt
+*.key
+*.csr
+
+# Docker
+.dockerignore
+
+# Debian packages
+../*.deb
+../*.changes
+../*.buildinfo
+../*.dsc
+packages/
+
+# Build artifacts
+*.tar.gz
+*.zip
+
+# Local configuration
+config/local.toml
+config/test.toml
+
+# Redis dump
+dump.rdb
+
+# Local scripts
+*.local.sh

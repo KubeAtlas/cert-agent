@@ -1,0 +1,30 @@
+# Cert Agent Configuration
+
+[grpc]
+bind_address = "0.0.0.0:50051"
+max_message_size = 4194304  # 4MB
+# TLS configuration (optional)
+# [grpc.tls]
+# cert_file = "/path/to/server.crt"
+# key_file = "/path/to/server.key"
+# ca_file = "/path/to/ca.crt"
+
+[redis]
+url = "redis://localhost:6379"
+max_connections = 10
+connection_timeout_secs = 5
+command_timeout_secs = 3
+
+[certificate]
+ca_cert_path = "./certs/ca.crt"
+ca_key_path = "./certs/ca.key"
+storage_path = "./certs/storage"
+default_validity_days = 365
+renewal_threshold_days = 30
+key_size = 2048
+signature_algorithm = "sha256"
+
+[watcher]
+check_interval_seconds = 3600  # 1 hour
+renewal_threshold_days = 30
+max_concurrent_renewals = 10

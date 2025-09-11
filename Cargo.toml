@@ -1,0 +1,56 @@
+[package]
+name = "cert-agent"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+description = "mTLS Certificate Management Service with gRPC"
+
+[dependencies]
+# gRPC dependencies
+tonic = "0.12"
+prost = "0.13"
+prost-types = "0.13"
+
+# Async runtime
+tokio = { version = "1.0", features = ["full"] }
+futures = "0.3"
+tokio-stream = "0.1"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Configuration
+config = "0.14"
+clap = { version = "4.0", features = ["derive"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Redis
+redis = { version = "0.26", features = ["tokio-comp", "connection-manager"] }
+
+# Cryptography
+openssl = { version = "0.10", features = ["vendored"] }
+x509-parser = "0.18"
+chrono = { version = "0.4", features = ["serde"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# HTTP client for CA interactions
+reqwest = { version = "0.11", features = ["json"] }
+
+# UUID generation
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# Base64 encoding
+base64 = "0.22"
+
+# Environment variables
+dotenvy = "0.15"
+
+[build-dependencies]
+tonic-build = "0.12"

@@ -1,0 +1,47 @@
+#!/bin/bash
+
+set -e
+
+# Source debconf library
+. /usr/share/debconf/confmodule
+
+# Create cert-agent user if it doesn't exist
+if ! getent passwd cert-agent > /dev/null 2>&1; then
+    useradd --system --shell /bin/false --home-dir /var/lib/cert-agent --create-home cert-agent
+    echo "Created cert-agent system user"
+fi
+
+# Create necessary directories
+mkdir -p /var/lib/cert-agent/certs/storage
+mkdir -p /var/log/cert-agent
+mkdir -p /etc/cert-agent
+
+# Set ownership
+chown -R cert-agent:cert-agent /var/lib/cert-agent
+chown -R cert-agent:cert-agent /var/log/cert-agent
+
+# Configure Redis URL if provided
+if db_get cert-agent/redis-url; then
+    REDIS_URL=$(db_get cert-agent/redis-url)
+    if [ -n "$REDIS_URL" ] && [ "$REDIS_URL" != "redis://localhost:6379" ]; then
+        # Update config file with custom Redis URL
+        sed -i "s|url = \"redis://localhost:6379\"|url = \"$REDIS_URL\"|" /etc/cert-agent/config.toml
+        echo "Updated Redis URL to: $REDIS_URL"
+    fi
+fi
+
+# Configure gRPC port if provided
+if db_get cert-agent/grpc-port; then
+    GRPC_PORT=$(db_get cert-agent/grpc-port)
+    if [ -n "$GRPC_PORT" ] && [ "$GRPC_PORT" != "50051" ]; then
+        # Update config file with custom gRPC port
+        sed -i "s|bind_address = \"0.0.0.0:50051\"|bind_address = \"0.0.0.0:$GRPC_PORT\"|" /etc/cert-agent/config.toml
+        echo "Updated gRPC port to: $GRPC_PORT"
+    fi
+fi
+
+# Set proper permissions on config file
+chmod 640 /etc/cert-agent/config.toml
+chown root:cert-agent /etc/cert-agent/config.toml
+
+echo "cert-agent configuration completed successfully"

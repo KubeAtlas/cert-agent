@@ -1,0 +1,58 @@
+#!/bin/bash
+
+set -e
+
+# Source debconf library
+. /usr/share/debconf/confmodule
+
+case "$1" in
+    configure)
+        # Run configuration script
+        /usr/lib/cert-agent/config
+        
+        # Reload systemd daemon
+        systemctl daemon-reload
+        
+        # Enable service if requested
+        if db_get cert-agent/enable-service; then
+            ENABLE_SERVICE=$(db_get cert-agent/enable-service)
+            if [ "$ENABLE_SERVICE" = "true" ]; then
+                systemctl enable cert-agent
+                echo "Enabled cert-agent service"
+                
+                # Start service
+                systemctl start cert-agent
+                echo "Started cert-agent service"
+                
+                # Check if service started successfully
+                if systemctl is-active --quiet cert-agent; then
+                    echo "✅ cert-agent service is running successfully!"
+                    echo "   gRPC API available on port 50051 (or configured port)"
+                    echo "   Check status with: systemctl status cert-agent"
+                    echo "   View logs with: journalctl -u cert-agent -f"
+                else
+                    echo "❌ Failed to start cert-agent service"
+                    echo "   Check logs with: journalctl -u cert-agent"
+                    exit 1
+                fi
+            fi
+        fi
+        
+        # Clean up debconf data
+        db_purge
+        
+        echo ""
+        echo "🎉 cert-agent installation completed!"
+        echo ""
+        echo "📋 Next steps:"
+        echo "   1. Check service status: systemctl status cert-agent"
+        echo "   2. View logs: journalctl -u cert-agent -f"
+        echo "   3. Test gRPC API: grpcurl -plaintext localhost:50051 list"
+        echo "   4. Configuration file: /etc/cert-agent/config.toml"
+        echo ""
+        ;;
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+esac
+
+exit 0

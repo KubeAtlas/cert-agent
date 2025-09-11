@@ -1,0 +1,10 @@
+cert-agent (0.1.0-1) unstable; urgency=medium
+
+  * Initial release of cert-agent
+  * mTLS certificate management with gRPC API
+  * Redis integration for certificate tracking
+  * Automatic certificate renewal
+  * Systemd service integration
+  * Debian package with debconf configuration
+
+ -- Your Name <your.email@example.com>  Thu, 11 Sep 2025 20:30:00 +0000

@@ -1,0 +1,30 @@
+Source: cert-agent
+Section: utils
+Priority: optional
+Maintainer: Your Name <your.email@example.com>
+Build-Depends: debhelper (>= 11), cargo, rustc (>= 1.75), libssl-dev, pkg-config, protobuf-compiler, perl, make, build-essential
+Standards-Version: 4.5.1
+Homepage: https://github.com/your-org/cert-agent
+
+Package: cert-agent
+Architecture: amd64 arm64
+Depends: ${shlibs:Depends}, ${misc:Depends}, redis-server (>= 6.0), systemd
+Recommends: redis-tools
+Description: mTLS Certificate Management Service with gRPC
+ cert-agent is a modern service for managing mTLS certificates with automatic
+ renewal, Redis-based tracking, and gRPC API for easy integration.
+ .
+ Features:
+  * gRPC API for certificate management
+  * Redis integration for certificate tracking
+  * Automatic certificate renewal
+  * mTLS certificate generation
+  * Certificate revocation support
+  * Real-time monitoring and notifications
+
+Package: cert-agent-dev
+Architecture: amd64 arm64
+Depends: cert-agent (= ${binary:Version}), ${misc:Depends}
+Description: Development files for cert-agent
+ This package contains development files and examples for building
+ clients that integrate with cert-agent gRPC API.

@@ -1,0 +1,169 @@
+name: Build and Release Debian Packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build for ${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            rust_target: x86_64-unknown-linux-gnu
+            deb_arch: amd64
+          - arch: arm64
+            rust_target: aarch64-unknown-linux-gnu
+            deb_arch: arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      - name: Install cross-compilation dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libssl-dev \
+            pkg-config \
+            protobuf-compiler \
+            perl \
+            make \
+            build-essential \
+            debhelper \
+            devscripts \
+            dh-make
+
+      - name: Install cross-compilation toolchain for ARM64
+        if: matrix.arch == 'arm64'
+        run: |
+          sudo apt-get install -y \
+            gcc-aarch64-linux-gnu \
+            libc6-dev-arm64-cross
+          rustup target add aarch64-unknown-linux-gnu
+
+      - name: Configure cross-compilation
+        if: matrix.arch == 'arm64'
+        run: |
+          echo '[target.aarch64-unknown-linux-gnu]' >> ~/.cargo/config.toml
+          echo 'linker = "aarch64-linux-gnu-gcc"' >> ~/.cargo/config.toml
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ matrix.rust_target }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ matrix.rust_target }}-
+
+      - name: Build Rust application
+        run: |
+          export PKG_CONFIG_ALLOW_CROSS=1
+          cargo build --release --target ${{ matrix.rust_target }}
+          ls -la target/${{ matrix.rust_target }}/release/
+
+      - name: Prepare debian package
+        run: |
+          # Update version in debian/changelog
+          VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
+          sed -i "s/0\.1\.0-1/$VERSION-1/" debian/changelog
+          
+          # Update architecture in debian/control
+          sed -i "s/Architecture: amd64 arm64/Architecture: ${{ matrix.deb_arch }}/" debian/control
+
+      - name: Build Debian package
+        run: |
+          # Create a clean copy of the binary for packaging
+          mkdir -p debian/cert-agent/usr/bin
+          cp target/${{ matrix.rust_target }}/release/cert-agent debian/cert-agent/usr/bin/
+          chmod +x debian/cert-agent/usr/bin/cert-agent
+          
+          # Build the package
+          dpkg-buildpackage -us -uc -b --host-arch ${{ matrix.deb_arch }}
+          
+          # List created files
+          ls -la ../*.deb
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cert-agent-${{ matrix.arch }}
+          path: ../cert-agent_*_${{ matrix.deb_arch }}.deb
+          retention-days: 30
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: cert-agent ${{ github.ref_name }}
+          body: |
+            ## cert-agent ${{ github.ref_name }}
+            
+            ### Debian Packages
+            - **AMD64**: `cert-agent_*_amd64.deb`
+            - **ARM64**: `cert-agent_*_arm64.deb`
+            
+            ### Installation
+            ```bash
+            # Download and install the package for your architecture
+            wget https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/cert-agent_*_amd64.deb
+            sudo dpkg -i cert-agent_*_amd64.deb
+            sudo apt-get install -f  # Install dependencies if needed
+            ```
+            
+            ### Configuration
+            After installation, configure Redis connection:
+            ```bash
+            sudo dpkg-reconfigure cert-agent
+            ```
+            
+            ### Features
+            - mTLS certificate management with gRPC API
+            - Redis integration for certificate tracking
+            - Automatic certificate renewal
+            - Systemd service integration
+            - Debian package with debconf configuration
+            
+            ### Documentation
+            See the [README](https://github.com/${{ github.repository }}/blob/main/README.md) for detailed usage instructions.
+          files: |
+            artifacts/cert-agent-amd64/*.deb
+            artifacts/cert-agent-arm64/*.deb
+          draft: false
+          prerelease: false
