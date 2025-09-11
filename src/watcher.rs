@@ -122,6 +122,7 @@ impl CertificateWatcher {
         Ok(())
     }
     
+    #[allow(dead_code)]
     pub async fn check_certificate_health(&self) -> Result<()> {
         let all_certs = self.cert_manager.list_certificates(None).await?;
         
@@ -149,6 +150,7 @@ impl CertificateWatcher {
         Ok(())
     }
     
+    #[allow(dead_code)]
     pub async fn cleanup_expired_certificates(&self, days_old: u32) -> Result<()> {
         let cutoff_time = chrono::Utc::now().timestamp() - (days_old as i64 * 24 * 60 * 60);
         let all_certs = self.cert_manager.list_certificates(Some("expired")).await?;

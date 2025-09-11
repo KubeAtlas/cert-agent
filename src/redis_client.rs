@@ -2,7 +2,7 @@ use crate::error::{CertAgentError, Result};
 use redis::{Client, AsyncCommands};
 use redis::aio::ConnectionManager;
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
+// use std::time::Duration; // Not used currently
 
 #[derive(Debug, Clone)]
 pub struct RedisClient {
@@ -137,6 +137,7 @@ impl RedisClient {
         Ok(expiring_certs)
     }
     
+    #[allow(dead_code)]
     pub async fn delete_certificate(&self, certificate_id: &str) -> Result<()> {
         let mut conn = self.get_connection().await?;
         let key = format!("cert:{}", certificate_id);

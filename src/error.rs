@@ -27,15 +27,18 @@ pub enum CertAgentError {
     Utf8(#[from] std::string::FromUtf8Error),
     
     #[error("Invalid certificate ID: {0}")]
+    #[allow(dead_code)]
     InvalidCertificateId(String),
     
     #[error("Certificate not found: {0}")]
     CertificateNotFound(String),
     
     #[error("Certificate expired: {0}")]
+    #[allow(dead_code)]
     CertificateExpired(String),
     
     #[error("Certificate already exists: {0}")]
+    #[allow(dead_code)]
     CertificateAlreadyExists(String),
     
     #[error("Invalid request: {0}")]
