@@ -26,8 +26,7 @@ override_dh_auto_install:
 	install -D -m 755 debian/config debian/cert-agent/usr/lib/cert-agent/config
 	
 	# Install development files for dev package
-	mkdir -p debian/cert-agent-dev/usr/share/cert-agent/examples
-	cp -r client/* debian/cert-agent-dev/usr/share/cert-agent/examples/
+	mkdir -p debian/cert-agent-dev/usr/share/cert-agent/proto
 	install -D -m 644 proto/cert_agent.proto debian/cert-agent-dev/usr/share/cert-agent/proto/cert_agent.proto
 
 override_dh_auto_clean:

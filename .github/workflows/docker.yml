@@ -90,15 +90,8 @@ jobs:
           # Test gRPC service
           timeout 10 bash -c 'until nc -z localhost 50051; do sleep 1; done'
           
-          # Build and test client
-          cd client
-          cargo build --release
-          
-          # Test certificate operations
-          ./target/release/cert-agent-client issue \
-            --subject "CN=test-client" \
-            --dns-names "test.example.com" \
-            --validity-days 30
+          # Test gRPC API using grpcurl
+          timeout 30 bash -c 'until grpcurl -plaintext localhost:50051 list; do sleep 1; done'
           
           # Cleanup
           cd ..

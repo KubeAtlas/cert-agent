@@ -149,25 +149,17 @@ grpcurl -plaintext -d '{
 }' localhost:50051 cert_agent.CertAgent/RevokeCertificate
 ```
 
-### CLI клиент
+### gRPC клиент
+
+Для тестирования и интеграции используйте любой gRPC клиент:
 
 ```bash
-# Выпустить сертификат
-./client/target/release/cert-agent-client issue \
-  --subject "CN=example.com" \
-  --dns-names "example.com,*.example.com" \
-  --validity-days 365
+# Используя grpcurl
+grpcurl -plaintext -d '{"subject": "CN=example.com"}' \
+  localhost:50051 cert_agent.CertAgent/IssueCertificate
 
-# Получить статус
-./client/target/release/cert-agent-client status \
-  --certificate-id "certificate-uuid"
-
-# Список сертификатов
-./client/target/release/cert-agent-client list
-
-# Отозвать сертификат
-./client/target/release/cert-agent-client revoke \
-  --certificate-id "certificate-uuid"
+# Используя собственный клиент на любом языке
+# Примеры клиентов доступны в отдельном репозитории
 ```
 
 ## 🐳 Docker
@@ -232,9 +224,6 @@ sudo apt-get install libssl-dev pkg-config protobuf-compiler
 
 # Сборка проекта
 cargo build
-
-# Сборка клиента
-cd client && cargo build
 
 # Запуск тестов
 cargo test
