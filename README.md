@@ -199,12 +199,15 @@ volumes:
 # Сборка образа
 docker build -t cert-agent .
 
+# Или использование готового образа
+docker pull ghcr.io/YOUR_USERNAME/cert-agent:latest
+
 # Запуск с Redis
 docker run -d --name cert-agent \
   --link redis:redis \
   -p 50051:50051 \
   -e CERT_AGENT_REDIS_URL=redis://redis:6379 \
-  cert-agent
+  ghcr.io/YOUR_USERNAME/cert-agent:latest
 ```
 
 ## 🏗️ Разработка
