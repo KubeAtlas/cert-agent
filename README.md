@@ -327,3 +327,7 @@ grpcurl -plaintext localhost:50051 grpc.health.v1.Health/Check
 - [ ] Kubernetes оператор
 - [ ] Поддержка Let's Encrypt
 - [ ] Автоматическое обновление через webhook
+ 
+  
+   
+   
