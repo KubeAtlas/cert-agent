@@ -9,9 +9,16 @@ RUN apt-get update && apt-get install -y \
     make \
     build-essential \
     protobuf-compiler \
+    clang \
+    lld \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+
+# Configure Rust to use Clang for better ARM64 emulation stability
+ENV CC=clang
+ENV CXX=clang++
+ENV AR=llvm-ar
 
 # Copy manifests first for better caching
 COPY Cargo.toml Cargo.lock ./
@@ -23,7 +30,7 @@ COPY proto/ proto/
 # Copy source code
 COPY src/ src/
 
-# Build the application
+# Build the application with Clang
 RUN cargo build --release
 
 # Runtime stage
