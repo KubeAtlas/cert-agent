@@ -105,11 +105,90 @@ jobs:
           # List created files
           ls -la ../*.deb
 
+      - name: Create TAR package
+        run: |
+          # Create TAR package for local installation
+          VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
+          mkdir -p cert-agent-${VERSION}-${{ matrix.arch }}
+          
+          # Copy binary
+          cp target/${{ matrix.rust_target }}/release/cert-agent cert-agent-${VERSION}-${{ matrix.arch }}/
+          
+          # Copy configuration files
+          cp config/default.toml cert-agent-${VERSION}-${{ matrix.arch }}/config.toml.example
+          cp env.example cert-agent-${VERSION}-${{ matrix.arch }}/
+          cp README.md cert-agent-${VERSION}-${{ matrix.arch }}/
+          cp LICENSE cert-agent-${VERSION}-${{ matrix.arch }}/
+          
+          # Create install script
+          cat > cert-agent-${VERSION}-${{ matrix.arch }}/install.sh << 'EOF'
+          #!/bin/bash
+          set -e
+          
+          echo "Installing cert-agent..."
+          
+          # Create directories
+          sudo mkdir -p /usr/local/bin
+          sudo mkdir -p /etc/cert-agent
+          sudo mkdir -p /var/lib/cert-agent
+          
+          # Copy binary
+          sudo cp cert-agent /usr/local/bin/
+          sudo chmod +x /usr/local/bin/cert-agent
+          
+          # Copy config
+          if [ ! -f /etc/cert-agent/config.toml ]; then
+            sudo cp config.toml.example /etc/cert-agent/config.toml
+            echo "Configuration file created at /etc/cert-agent/config.toml"
+          fi
+          
+          # Create systemd service
+          sudo tee /etc/systemd/system/cert-agent.service > /dev/null << 'SERVICE_EOF'
+          [Unit]
+          Description=Certificate Agent
+          After=network.target
+          
+          [Service]
+          Type=simple
+          User=cert-agent
+          Group=cert-agent
+          ExecStart=/usr/local/bin/cert-agent --config /etc/cert-agent/config.toml
+          Restart=always
+          RestartSec=5
+          
+          [Install]
+          WantedBy=multi-user.target
+          SERVICE_EOF
+          
+          # Create user
+          if ! id "cert-agent" &>/dev/null; then
+            sudo useradd -r -s /bin/false cert-agent
+          fi
+          
+          # Set permissions
+          sudo chown -R cert-agent:cert-agent /var/lib/cert-agent
+          
+          echo "Installation complete!"
+          echo "To start the service: sudo systemctl enable --now cert-agent"
+          echo "To check status: sudo systemctl status cert-agent"
+          echo "Edit configuration: sudo nano /etc/cert-agent/config.toml"
+          EOF
+          
+          chmod +x cert-agent-${VERSION}-${{ matrix.arch }}/install.sh
+          
+          # Create TAR archive
+          tar -czf cert-agent-${VERSION}-${{ matrix.arch }}.tar.gz cert-agent-${VERSION}-${{ matrix.arch }}/
+          
+          # List created files
+          ls -la cert-agent-${VERSION}-${{ matrix.arch }}.tar.gz
+
       - name: Upload package artifacts
         uses: actions/upload-artifact@v4
         with:
           name: cert-agent-${{ matrix.arch }}
-          path: ../cert-agent_*_${{ matrix.deb_arch }}.deb
+          path: |
+            ../cert-agent_*_${{ matrix.deb_arch }}.deb
+            cert-agent-*-${{ matrix.arch }}.tar.gz
           retention-days: 30
 
   release:
