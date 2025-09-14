@@ -13,18 +13,27 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy manifests
+# Copy manifests first for better caching
 COPY Cargo.toml Cargo.lock ./
 COPY build.rs ./
+
+# Create a dummy main.rs to build dependencies
+RUN mkdir src && echo "fn main() {}" > src/main.rs
+
+# Build dependencies first (this layer will be cached)
+RUN cargo build --release
+
+# Remove dummy main.rs
+RUN rm src/main.rs
 
 # Copy proto files
 COPY proto/ proto/
 
-# Copy source code
+# Copy actual source code
 COPY src/ src/
 
-# Build the application
-RUN cargo build --release
+# Build the application (only this step will rebuild when source changes)
+RUN touch src/main.rs && cargo build --release
 
 # Runtime stage
 FROM debian:bookworm-slim
