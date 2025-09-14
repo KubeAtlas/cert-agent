@@ -17,6 +17,9 @@ WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY build.rs ./
 
+# Copy proto files (needed for build.rs)
+COPY proto/ proto/
+
 # Create a dummy main.rs to build dependencies
 RUN mkdir src && echo "fn main() {}" > src/main.rs
 
@@ -25,9 +28,6 @@ RUN cargo build --release
 
 # Remove dummy main.rs
 RUN rm src/main.rs
-
-# Copy proto files
-COPY proto/ proto/
 
 # Copy actual source code
 COPY src/ src/
