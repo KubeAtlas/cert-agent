@@ -23,18 +23,18 @@ pub struct CertificateRecord {
 
 impl RedisClient {
     pub async fn new(url: &str) -> Result<Self> {
-        let client = Client::open(url).map_err(|e| CertAgentError::Redis(e))?;
+        let client = Client::open(url).map_err(CertAgentError::Redis)?;
 
         // Test connection
         let mut conn = client
             .get_connection_manager()
             .await
-            .map_err(|e| CertAgentError::Redis(e))?;
+            .map_err(CertAgentError::Redis)?;
 
         redis::cmd("PING")
             .exec_async(&mut conn)
             .await
-            .map_err(|e| CertAgentError::Redis(e))?;
+            .map_err(CertAgentError::Redis)?;
 
         Ok(Self { client })
     }
@@ -43,7 +43,7 @@ impl RedisClient {
         self.client
             .get_connection_manager()
             .await
-            .map_err(|e| CertAgentError::Redis(e))
+            .map_err(CertAgentError::Redis)
     }
 
     // Certificate operations
@@ -52,15 +52,15 @@ impl RedisClient {
         let key = format!("cert:{}", cert_record.certificate_id);
         let value = serde_json::to_string(cert_record)?;
 
-        conn.set_ex(&key, value, 365 * 24 * 60 * 60)
+        conn.set_ex::<_, _, ()>(&key, value, 365 * 24 * 60 * 60)
             .await
-            .map_err(|e| CertAgentError::Redis(e))?;
+            .map_err(CertAgentError::Redis)?;
 
         // Add to index for listing
         let _: () = conn
             .sadd("certs:all", &cert_record.certificate_id)
             .await
-            .map_err(|e| CertAgentError::Redis(e))?;
+            .map_err(CertAgentError::Redis)?;
 
         Ok(())
     }
@@ -69,7 +69,7 @@ impl RedisClient {
         let mut conn = self.get_connection().await?;
         let key = format!("cert:{}", certificate_id);
 
-        let value: Option<String> = conn.get(&key).await.map_err(|e| CertAgentError::Redis(e))?;
+        let value: Option<String> = conn.get(&key).await.map_err(CertAgentError::Redis)?;
 
         match value {
             Some(v) => {
@@ -89,16 +89,16 @@ impl RedisClient {
         let key = format!("cert:{}", certificate_id);
 
         // Get current record
-        let value: Option<String> = conn.get(&key).await.map_err(|e| CertAgentError::Redis(e))?;
+        let value: Option<String> = conn.get(&key).await.map_err(CertAgentError::Redis)?;
 
         if let Some(v) = value {
             let mut cert_record: CertificateRecord = serde_json::from_str(&v)?;
             cert_record.status = status.to_string();
             let updated_value = serde_json::to_string(&cert_record)?;
 
-            conn.set(&key, updated_value)
+            conn.set::<_, _, ()>(&key, updated_value)
                 .await
-                .map_err(|e| CertAgentError::Redis(e))?;
+                .map_err(CertAgentError::Redis)?;
         }
 
         Ok(())
@@ -112,14 +112,13 @@ impl RedisClient {
         let certificate_ids: Vec<String> = conn
             .smembers("certs:all")
             .await
-            .map_err(|e| CertAgentError::Redis(e))?;
+            .map_err(CertAgentError::Redis)?;
 
         let mut certificates = Vec::new();
 
         for cert_id in certificate_ids {
             let key = format!("cert:{}", cert_id);
-            let value: Option<String> =
-                conn.get(&key).await.map_err(|e| CertAgentError::Redis(e))?;
+            let value: Option<String> = conn.get(&key).await.map_err(CertAgentError::Redis)?;
 
             if let Some(v) = value {
                 let cert_record: CertificateRecord = serde_json::from_str(&v)?;
@@ -162,13 +161,13 @@ impl RedisClient {
         let key = format!("cert:{}", certificate_id);
 
         // Remove from main storage
-        let _: () = conn.del(&key).await.map_err(|e| CertAgentError::Redis(e))?;
+        let _: () = conn.del(&key).await.map_err(CertAgentError::Redis)?;
 
         // Remove from index
         let _: () = conn
             .srem("certs:all", certificate_id)
             .await
-            .map_err(|e| CertAgentError::Redis(e))?;
+            .map_err(CertAgentError::Redis)?;
 
         Ok(())
     }
@@ -176,9 +175,9 @@ impl RedisClient {
     // Pub/Sub for real-time notifications
     pub async fn publish_event(&self, event: &str, data: &str) -> Result<()> {
         let mut conn = self.get_connection().await?;
-        conn.publish("cert_events", format!("{}:{}", event, data))
+        conn.publish::<_, _, ()>("cert_events", format!("{}:{}", event, data))
             .await
-            .map_err(|e| CertAgentError::Redis(e))?;
+            .map_err(CertAgentError::Redis)?;
         Ok(())
     }
 }

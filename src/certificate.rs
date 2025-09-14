@@ -178,7 +178,7 @@ impl CertificateManager {
         let mut cert_builder = X509::builder()?;
         cert_builder.set_version(2)?;
         cert_builder.set_subject_name(&name)?;
-        cert_builder.set_issuer_name(&self.ca_cert.as_ref().unwrap().subject_name())?;
+        cert_builder.set_issuer_name(self.ca_cert.as_ref().unwrap().subject_name())?;
 
         // Set serial number
         let serial = BigNum::from_u32(uuid::Uuid::new_v4().as_fields().0)?;
