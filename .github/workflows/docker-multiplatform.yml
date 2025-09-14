@@ -24,6 +24,14 @@ jobs:
           echo "PLATFORM=linux/amd64" >> $GITHUB_ENV
           echo "PLATFORM_PAIR=linux-amd64" >> $GITHUB_ENV
 
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libssl-dev \
+            pkg-config \
+            protobuf-compiler
+
       - name: Cache Cargo registry
         uses: actions/cache@v4
         with:
@@ -109,6 +117,14 @@ jobs:
         run: |
           echo "PLATFORM=linux/arm64" >> $GITHUB_ENV
           echo "PLATFORM_PAIR=linux-arm64" >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libssl-dev \
+            pkg-config \
+            protobuf-compiler
 
       - name: Cache Cargo registry
         uses: actions/cache@v4
