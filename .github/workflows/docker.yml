@@ -76,13 +76,13 @@ jobs:
       - name: Test Docker Compose
         run: |
           # Start services
-          docker-compose up -d
+          docker compose up -d
           
           # Wait for services to be ready
           sleep 10
           
           # Check if services are running
-          docker-compose ps
+          docker compose ps
           
           # Test Redis connection
           docker exec cert-agent-redis redis-cli ping
@@ -90,15 +90,16 @@ jobs:
           # Test gRPC service
           timeout 10 bash -c 'until nc -z localhost 50051; do sleep 1; done'
           
-          # Test gRPC API using grpcurl
+          # Test gRPC API using grpcurl (install if not available)
+          which grpcurl || (wget -O /tmp/grpcurl.tar.gz https://github.com/fullstorydev/grpcurl/releases/download/v1.8.7/grpcurl_1.8.7_linux_x86_64.tar.gz && tar -xzf /tmp/grpcurl.tar.gz -C /tmp && sudo mv /tmp/grpcurl /usr/local/bin/)
           timeout 30 bash -c 'until grpcurl -plaintext localhost:50051 list; do sleep 1; done'
           
           # Cleanup
           cd ..
-          docker-compose down
+          docker compose down
 
       - name: Cleanup
         if: always()
         run: |
-          docker-compose down -v
+          docker compose down -v
           docker system prune -f
