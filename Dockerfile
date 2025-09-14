@@ -9,16 +9,12 @@ RUN apt-get update && apt-get install -y \
     make \
     build-essential \
     protobuf-compiler \
-    clang \
-    lld \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Configure Rust to use Clang for better ARM64 emulation stability
-ENV CC=clang
-ENV CXX=clang++
-ENV AR=llvm-ar
+# Configure Rust with optimizations for ARM64 emulation
+ENV RUSTFLAGS="-C target-cpu=native -C opt-level=2"
 
 # Use system OpenSSL instead of building from source (better for cross-compilation)
 ENV OPENSSL_STATIC=0
