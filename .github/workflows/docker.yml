@@ -73,8 +73,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.platform }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
+          # Temporarily disable caching due to GitHub Actions Cache service issues
+          # cache-from: type=gha,scope=${{ matrix.platform }}
+          # cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
 
   test-docker-compose:
     name: Test Docker Compose
