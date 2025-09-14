@@ -84,8 +84,9 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ env.REGISTRY_IMAGE }}
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=gha,scope=${{ env.PLATFORM_PAIR }}
-          cache-to: type=gha,mode=max,scope=${{ env.PLATFORM_PAIR }}
+          # Temporarily disable caching due to GitHub Actions Cache service issues
+          # cache-from: type=gha,scope=${{ env.PLATFORM_PAIR }}
+          # cache-to: type=gha,mode=max,scope=${{ env.PLATFORM_PAIR }}
 
       - name: Export digest
         run: |
