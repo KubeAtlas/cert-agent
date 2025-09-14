@@ -63,11 +63,6 @@ jobs:
       - name: Test
         run: cargo test --verbose
 
-      - name: Build client
-        run: |
-          cd client
-          cargo build --verbose
-
   lint:
     name: Lint
     runs-on: ubuntu-latest

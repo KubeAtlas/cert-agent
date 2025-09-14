@@ -2,7 +2,7 @@ use crate::certificate::{CertificateManager, CertificateRequest};
 use crate::redis_client::RedisClient;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status};
-use tracing::{info, error, warn};
+use tracing::{error, info, warn};
 
 pub mod cert_agent {
     tonic::include_proto!("cert_agent");
@@ -26,21 +26,24 @@ impl CertAgentService {
             redis,
         }
     }
-    
+
     pub async fn start(&self, bind_address: String) -> crate::error::Result<()> {
-        let addr = bind_address.parse()
-            .map_err(|e| crate::error::CertAgentError::InvalidRequest(format!("Invalid bind address: {}", e)))?;
-        
+        let addr = bind_address.parse().map_err(|e| {
+            crate::error::CertAgentError::InvalidRequest(format!("Invalid bind address: {}", e))
+        })?;
+
         let service = CertAgentServer::new(self.clone());
-        
+
         info!("Starting gRPC server on {}", addr);
-        
+
         tonic::transport::Server::builder()
             .add_service(service)
             .serve(addr)
             .await
-            .map_err(|e| crate::error::CertAgentError::Internal(format!("gRPC server error: {}", e)))?;
-        
+            .map_err(|e| {
+                crate::error::CertAgentError::Internal(format!("gRPC server error: {}", e))
+            })?;
+
         Ok(())
     }
 }
@@ -52,9 +55,9 @@ impl CertAgent for CertAgentService {
         request: Request<IssueCertificateRequest>,
     ) -> std::result::Result<Response<IssueCertificateResponse>, Status> {
         let req = request.into_inner();
-        
+
         info!("Issuing certificate for CN: {}", req.common_name);
-        
+
         let cert_request = CertificateRequest {
             common_name: req.common_name,
             dns_names: req.dns_names,
@@ -67,7 +70,7 @@ impl CertAgent for CertAgentService {
             locality: Some(req.locality),
             metadata: req.metadata,
         };
-        
+
         match self.cert_manager.issue_certificate(cert_request).await {
             Ok(cert) => {
                 let response = IssueCertificateResponse {
@@ -78,32 +81,42 @@ impl CertAgent for CertAgentService {
                     expires_at: cert.expires_at.timestamp(),
                     status: cert_status_to_proto(&cert.status),
                 };
-                
-                info!("Successfully issued certificate: {}", response.certificate_id);
+
+                info!(
+                    "Successfully issued certificate: {}",
+                    response.certificate_id
+                );
                 Ok(Response::new(response))
             }
             Err(e) => {
                 error!("Failed to issue certificate: {}", e);
-                Err(Status::internal(format!("Failed to issue certificate: {}", e)))
+                Err(Status::internal(format!(
+                    "Failed to issue certificate: {}",
+                    e
+                )))
             }
         }
     }
-    
+
     async fn renew_certificate(
         &self,
         request: Request<RenewCertificateRequest>,
     ) -> std::result::Result<Response<RenewCertificateResponse>, Status> {
         let req = request.into_inner();
-        
+
         info!("Renewing certificate: {}", req.certificate_id);
-        
+
         let validity_days = if req.validity_days > 0 {
             Some(req.validity_days as u32)
         } else {
             None
         };
-        
-        match self.cert_manager.renew_certificate(&req.certificate_id, validity_days).await {
+
+        match self
+            .cert_manager
+            .renew_certificate(&req.certificate_id, validity_days)
+            .await
+        {
             Ok(cert) => {
                 let response = RenewCertificateResponse {
                     certificate_id: cert.certificate_id,
@@ -112,34 +125,47 @@ impl CertAgent for CertAgentService {
                     expires_at: cert.expires_at.timestamp(),
                     status: cert_status_to_proto(&cert.status),
                 };
-                
-                info!("Successfully renewed certificate: {}", response.certificate_id);
+
+                info!(
+                    "Successfully renewed certificate: {}",
+                    response.certificate_id
+                );
                 Ok(Response::new(response))
             }
             Err(e) => {
                 error!("Failed to renew certificate {}: {}", req.certificate_id, e);
-                Err(Status::internal(format!("Failed to renew certificate: {}", e)))
+                Err(Status::internal(format!(
+                    "Failed to renew certificate: {}",
+                    e
+                )))
             }
         }
     }
-    
+
     async fn revoke_certificate(
         &self,
         request: Request<RevokeCertificateRequest>,
     ) -> std::result::Result<Response<RevokeCertificateResponse>, Status> {
         let req = request.into_inner();
-        
+
         info!("Revoking certificate: {}", req.certificate_id);
-        
-        match self.cert_manager.revoke_certificate(&req.certificate_id, Some(&req.reason)).await {
+
+        match self
+            .cert_manager
+            .revoke_certificate(&req.certificate_id, Some(&req.reason))
+            .await
+        {
             Ok(()) => {
                 let response = RevokeCertificateResponse {
                     certificate_id: req.certificate_id,
                     success: true,
                     message: "Certificate revoked successfully".to_string(),
                 };
-                
-                info!("Successfully revoked certificate: {}", response.certificate_id);
+
+                info!(
+                    "Successfully revoked certificate: {}",
+                    response.certificate_id
+                );
                 Ok(Response::new(response))
             }
             Err(e) => {
@@ -153,14 +179,18 @@ impl CertAgent for CertAgentService {
             }
         }
     }
-    
+
     async fn get_certificate_status(
         &self,
         request: Request<GetCertificateStatusRequest>,
     ) -> std::result::Result<Response<GetCertificateStatusResponse>, Status> {
         let req = request.into_inner();
-        
-        match self.cert_manager.get_certificate_status(&req.certificate_id).await {
+
+        match self
+            .cert_manager
+            .get_certificate_status(&req.certificate_id)
+            .await
+        {
             Ok(Some(cert_record)) => {
                 let response = GetCertificateStatusResponse {
                     certificate_id: cert_record.certificate_id,
@@ -175,28 +205,41 @@ impl CertAgent for CertAgentService {
             }
             Ok(None) => {
                 warn!("Certificate not found: {}", req.certificate_id);
-                Err(Status::not_found(format!("Certificate not found: {}", req.certificate_id)))
+                Err(Status::not_found(format!(
+                    "Certificate not found: {}",
+                    req.certificate_id
+                )))
             }
             Err(e) => {
-                error!("Failed to get certificate status {}: {}", req.certificate_id, e);
-                Err(Status::internal(format!("Failed to get certificate status: {}", e)))
+                error!(
+                    "Failed to get certificate status {}: {}",
+                    req.certificate_id, e
+                );
+                Err(Status::internal(format!(
+                    "Failed to get certificate status: {}",
+                    e
+                )))
             }
         }
     }
-    
+
     async fn list_certificates(
         &self,
         request: Request<ListCertificatesRequest>,
     ) -> std::result::Result<Response<ListCertificatesResponse>, Status> {
         let req = request.into_inner();
-        
+
         let status_filter = if req.status == cert_status_to_proto("") {
             None
         } else {
             Some(proto_to_cert_status(&req.status))
         };
-        
-        match self.cert_manager.list_certificates(status_filter.as_deref()).await {
+
+        match self
+            .cert_manager
+            .list_certificates(status_filter.as_deref())
+            .await
+        {
             Ok(certificates) => {
                 let cert_infos: Vec<CertificateInfo> = certificates
                     .into_iter()
@@ -210,57 +253,69 @@ impl CertAgent for CertAgentService {
                         metadata: cert.metadata,
                     })
                     .collect();
-                
+
                 let response = ListCertificatesResponse {
                     certificates: cert_infos,
                     next_page_token: String::new(), // TODO: Implement pagination
                 };
-                
+
                 Ok(Response::new(response))
             }
             Err(e) => {
                 error!("Failed to list certificates: {}", e);
-                Err(Status::internal(format!("Failed to list certificates: {}", e)))
+                Err(Status::internal(format!(
+                    "Failed to list certificates: {}",
+                    e
+                )))
             }
         }
     }
-    
+
     type WatchCertificatesStream = ReceiverStream<std::result::Result<CertificateEvent, Status>>;
-    
+
     async fn watch_certificates(
         &self,
         request: Request<WatchCertificatesRequest>,
     ) -> std::result::Result<Response<Self::WatchCertificatesStream>, Status> {
         let req = request.into_inner();
-        
-        info!("Starting certificate watch for {} certificates", req.certificate_ids.len());
-        
+
+        info!(
+            "Starting certificate watch for {} certificates",
+            req.certificate_ids.len()
+        );
+
         let (tx, rx) = tokio::sync::mpsc::channel(100);
         let cert_manager = self.cert_manager.clone();
         let _redis = self.redis.clone();
         let certificate_ids = req.certificate_ids;
         let check_interval = req.check_interval_seconds;
-        
+
         tokio::spawn(async move {
-            let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(check_interval as u64));
-            
+            let mut interval =
+                tokio::time::interval(tokio::time::Duration::from_secs(check_interval as u64));
+
             loop {
                 interval.tick().await;
-                
+
                 // Get expiring certificates
                 match cert_manager.get_expiring_certificates().await {
                     Ok(expiring_certs) => {
                         for cert in expiring_certs {
                             // Check if we should watch this certificate
-                            if certificate_ids.is_empty() || certificate_ids.contains(&cert.certificate_id) {
+                            if certificate_ids.is_empty()
+                                || certificate_ids.contains(&cert.certificate_id)
+                            {
                                 let event = CertificateEvent {
                                     certificate_id: cert.certificate_id.clone(),
                                     event_type: CertificateEventType::Expiring as i32,
-                                    message: format!("Certificate expires in {} days", 
-                                        (cert.expires_at - chrono::Utc::now().timestamp()) / (24 * 60 * 60)),
+                                    message: format!(
+                                        "Certificate expires in {} days",
+                                        (cert.expires_at - chrono::Utc::now().timestamp())
+                                            / (24 * 60 * 60)
+                                    ),
                                     timestamp: chrono::Utc::now().timestamp(),
                                 };
-                                
+
                                 if tx.send(Ok(event)).await.is_err() {
                                     return; // Client disconnected
                                 }
@@ -275,7 +330,7 @@ impl CertAgent for CertAgentService {
                             message: format!("Error checking certificates: {}", e),
                             timestamp: chrono::Utc::now().timestamp(),
                         };
-                        
+
                         if tx.send(Ok(error_event)).await.is_err() {
                             return;
                         }
@@ -283,7 +338,7 @@ impl CertAgent for CertAgentService {
                 }
             }
         });
-        
+
         Ok(Response::new(ReceiverStream::new(rx)))
     }
 }

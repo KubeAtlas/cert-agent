@@ -62,7 +62,7 @@ impl Config {
                 .add_source(config::Environment::with_prefix("CERT_AGENT").separator("_"))
                 .build()?
         };
-        
+
         let config: Config = settings.try_deserialize()?;
         Ok(config)
     }

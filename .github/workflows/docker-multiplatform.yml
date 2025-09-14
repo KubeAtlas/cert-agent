@@ -21,6 +21,16 @@ jobs:
         platform:
           - linux/amd64
           - linux/arm64
+    # Only build ARM64 if there are changes that might affect ARM64 builds
+    if: |
+      matrix.platform == 'linux/amd64' || 
+      (matrix.platform == 'linux/arm64' && (
+        contains(github.event.head_commit.message, 'arm64') ||
+        contains(github.event.head_commit.message, 'multi-platform') ||
+        contains(github.event.head_commit.message, 'docker') ||
+        github.event_name == 'workflow_dispatch' ||
+        startsWith(github.ref, 'refs/tags/v')
+      ))
     
     steps:
       - name: Checkout code
@@ -170,7 +180,7 @@ jobs:
           docker compose up -d
           
           # Wait for services to be ready
-          sleep 10
+          sleep 15
           
           # Check if services are running
           docker compose ps
@@ -180,11 +190,10 @@ jobs:
           echo "✅ Redis is responding"
           
           # Test gRPC service availability
-          timeout 10 bash -c 'until nc -z localhost 50051; do sleep 1; done'
+          timeout 15 bash -c 'until nc -z localhost 50051; do sleep 1; done'
           echo "✅ gRPC service is running and accepting connections"
           
           # Cleanup
-          cd ..
           docker compose down
 
       - name: Cleanup

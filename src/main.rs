@@ -1,13 +1,13 @@
+mod certificate;
 mod config;
 mod error;
-mod certificate;
-mod redis_client;
 mod grpc;
+mod redis_client;
 mod watcher;
 
 use anyhow::Result;
 use clap::Parser;
-use tracing::{info, error};
+use tracing::{error, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use config::Config;
@@ -20,7 +20,7 @@ use watcher::CertificateWatcher;
 struct Args {
     #[arg(short, long, default_value = "config/default.toml")]
     config: String,
-    
+
     #[arg(long, default_value = "info")]
     log_level: String,
 }
@@ -28,7 +28,7 @@ struct Args {
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
-    
+
     // Initialize logging
     tracing_subscriber::registry()
         .with(
@@ -39,21 +39,19 @@ async fn main() -> Result<()> {
         .init();
 
     info!("Starting cert-agent service...");
-    
+
     // Load configuration
     let config = Config::load(&args.config)?;
     info!("Configuration loaded from: {}", args.config);
-    
+
     // Initialize Redis client
     let redis_client = redis_client::RedisClient::new(&config.redis.url).await?;
     info!("Connected to Redis at: {}", config.redis.url);
-    
+
     // Initialize certificate manager
-    let cert_manager = certificate::CertificateManager::new(
-        &config.certificate,
-        redis_client.clone(),
-    ).await?;
-    
+    let cert_manager =
+        certificate::CertificateManager::new(&config.certificate, redis_client.clone()).await?;
+
     // Start certificate watcher
     let watcher = CertificateWatcher::new(
         cert_manager.clone(),
@@ -65,10 +63,10 @@ async fn main() -> Result<()> {
             error!("Certificate watcher error: {}", e);
         }
     });
-    
+
     // Initialize gRPC service
     let grpc_service = CertAgentService::new(cert_manager, redis_client);
-    
+
     // Start gRPC server
     let bind_address = config.grpc.bind_address.clone();
     let grpc_handle = tokio::spawn(async move {
@@ -76,11 +74,14 @@ async fn main() -> Result<()> {
             error!("gRPC server error: {}", e);
         }
     });
-    
+
     info!("Cert-agent service started successfully");
     info!("gRPC server listening on: {}", config.grpc.bind_address);
-    info!("Certificate watcher running with {} second intervals", config.watcher.check_interval_seconds);
-    
+    info!(
+        "Certificate watcher running with {} second intervals",
+        config.watcher.check_interval_seconds
+    );
+
     // Wait for either service to exit
     tokio::select! {
         result = watcher_handle => {
@@ -90,6 +91,6 @@ async fn main() -> Result<()> {
             error!("gRPC server exited: {:?}", result);
         }
     }
-    
+
     Ok(())
 }
