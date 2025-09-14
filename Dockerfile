@@ -20,20 +20,11 @@ COPY build.rs ./
 # Copy proto files (needed for build.rs)
 COPY proto/ proto/
 
-# Create a dummy main.rs to build dependencies
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-
-# Build dependencies first (this layer will be cached)
-RUN cargo build --release
-
-# Remove dummy main.rs
-RUN rm src/main.rs
-
-# Copy actual source code
+# Copy source code
 COPY src/ src/
 
-# Build the application (only this step will rebuild when source changes)
-RUN touch src/main.rs && cargo build --release
+# Build the application
+RUN cargo build --release
 
 # Runtime stage
 FROM debian:bookworm-slim
