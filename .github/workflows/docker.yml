@@ -73,14 +73,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: |
-            type=gha,scope=${{ matrix.platform }}
-            type=registry,ref=ghcr.io/kubeatlas/cert-agent:buildcache-${{ matrix.platform }}
-          cache-to: |
-            type=gha,mode=max,scope=${{ matrix.platform }}
-            type=registry,ref=ghcr.io/kubeatlas/cert-agent:buildcache-${{ matrix.platform }},mode=max
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
+          cache-from: type=gha,scope=${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
 
   test-docker-compose:
     name: Test Docker Compose

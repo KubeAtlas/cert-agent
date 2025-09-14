@@ -58,11 +58,5 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: |
-            type=gha,scope=arm64
-            type=registry,ref=ghcr.io/kubeatlas/cert-agent:buildcache-arm64
-          cache-to: |
-            type=gha,mode=max,scope=arm64
-            type=registry,ref=ghcr.io/kubeatlas/cert-agent:buildcache-arm64,mode=max
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
+          cache-from: type=gha,scope=arm64
+          cache-to: type=gha,mode=max,scope=arm64
