@@ -20,6 +20,12 @@ ENV CC=clang
 ENV CXX=clang++
 ENV AR=llvm-ar
 
+# Use system OpenSSL instead of building from source (better for cross-compilation)
+ENV OPENSSL_STATIC=0
+ENV OPENSSL_DIR=/usr
+ENV PKG_CONFIG_PATH=/usr/lib/pkgconfig
+ENV PKG_CONFIG_ALLOW_CROSS=1
+
 # Copy manifests first for better caching
 COPY Cargo.toml Cargo.lock ./
 COPY build.rs ./
